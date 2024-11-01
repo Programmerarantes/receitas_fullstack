@@ -2,6 +2,7 @@ import express from 'express'
 import cors from 'cors'
 import * as RecipeAPI from './recipe-api'
 import dotenv from 'dotenv'
+import { getRecipeSummary } from './recipe-api';
 
 dotenv.config()
 
@@ -21,11 +22,18 @@ app.get("/api/recipes/search", async (req, res) => {
         await RecipeAPI.searchRecipes(searchTerm, page).then((results) => {
             return res.json(results)
         })
-    } catch(error){
+    } catch (error) {
         console.error("Erro ao buscar receitas:", error)
-    }    
+    }
+})
 
+app.get("/api/recipes/:recipeId/summary", async (req, res) => {
+    const recipeId = req.params.recipeId
+    await RecipeAPI.getRecipeSummary(recipeId).then((results) => {
+        return res.json(results)
     })
+
+})
 
 app.listen(process.env.PORT, () => {
     console.log(`server is running on http://localhost:${process.env.PORT}`)
