@@ -1,15 +1,32 @@
-import { FormEvent, useRef, useState } from "react"
+import { FormEvent, useEffect, useRef, useState } from "react"
 import "./App.css"
 import * as api from './utils/api'
 import { Recipe } from "./utils/types"
 import RecipeCard from "./components/RecipeCard"
 import RecipeModal from "./components/RecipeModal"
 
+type Tabs = "search" | "favourites"
+
 const App = () => {
   const [searchTerm, setSearchTerm] = useState<string>("")
   const [recipes, setRecipes] = useState<Recipe[]>([])
   const [selectedRecipe, setSelectedRecipe] = useState<Recipe | undefined>(undefined)
+  const [selectedTab, setSelectedTab] = useState<Tabs>("search")
+  const [favouriteRecipes, setFavouriteRecipes] = useState<Recipe[]>([])
   const pageNumber = useRef(1)
+
+  useEffect(() => {
+    const fetchFavouriteRecipes = async () => {
+      try {
+        const favouriteRecipes = await api.getFavouriteRecipes();
+        setFavouriteRecipes(favouriteRecipes.results);
+      } catch (error) {
+        console.log(error);
+      }
+    };
+
+    fetchFavouriteRecipes();
+  }, []);
 
   const handleSearchSubmit = async (event: FormEvent) => {
     event.preventDefault()
@@ -33,32 +50,74 @@ const App = () => {
     }
   }
 
+  const addFavouriteRecipe = async (recipe: Recipe) => {
+    try {
+      await api.addFavouriteRecipe(recipe);
+      setFavouriteRecipes([...favouriteRecipes, recipe]);
+    } catch (error) {
+      console.log(error);
+    }
+  }
+
   return (
     <div>
-      <form onSubmit={(event) => handleSearchSubmit(event)}>
-        <input
-          type="text"
-          required
-          placeholder="Enter a search term..."
-          value={searchTerm}
-          onChange={(event) => setSearchTerm(event.target.value)}
-        />
-        <button type="submit">Submit</button>
-      </form>
-      {recipes.map((recipe) => (
-        <RecipeCard recipe={recipe} onClick={() => setSelectedRecipe(recipe)}/>
-      ))}
-      <button
-        className="view-more-btn"
-        onClick={handleViewMoreClick}
-      >
-        View More
-      </button>
+      <div className="tabs">
+        <h1 onClick={() => setSelectedTab("search")}>Recipe Search</h1>
+        <h1 onClick={() => setSelectedTab("favourites")}>Favourites</h1>
+      </div>
+      {selectedTab === "search" && (
+        <>
+          <form onSubmit={(event) => handleSearchSubmit(event)}>
+            <input
+              type="text"
+              required
+              placeholder="Enter a search term..."
+              value={searchTerm}
+              onChange={(event) => setSearchTerm(event.target.value)}
+            />
+            <button type="submit">Submit</button>
+          </form>
+          {recipes.map((recipe) => {
+            const isFavourite = favouriteRecipes.some((favRecipe) => recipe.id === favRecipe.id
+            )
 
-      {selectedRecipe ? 
-        <RecipeModal 
-        recipeId={selectedRecipe.id.toString()} 
-        onClose={() => setSelectedRecipe(undefined)}/> 
+            return (
+              <RecipeCard
+                recipe={recipe}
+                onClick={() => setSelectedRecipe(recipe)}
+                onFavouriteButtonClick={addFavouriteRecipe}
+                isFavourite={isFavourite}
+              />
+            )
+
+          })}
+          <button
+            className="view-more-btn"
+            onClick={handleViewMoreClick}
+          >
+            View More
+          </button>
+        </>
+      )}
+
+      {selectedTab === "favourites" && (
+        <div>
+          {favouriteRecipes.map((recipe) =>
+            <RecipeCard
+              recipe={recipe}
+              onClick={() => setSelectedRecipe(recipe)}
+              onFavouriteButtonClick={() => undefined}
+              isFavourite={true}
+            />)}
+        </div>
+      )}
+
+
+
+      {selectedRecipe ?
+        <RecipeModal
+          recipeId={selectedRecipe.id.toString()}
+          onClose={() => setSelectedRecipe(undefined)} />
         : null}
     </div>
   )
