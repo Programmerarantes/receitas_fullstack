@@ -59,7 +59,7 @@ app.get("/api/recipes/favourite", async (req, res) => {
     res.status(500).json( {error: "Something went wrong"})})
 })
 
-app.delete("/api/recipes/favorite", (req, res) => {
+app.delete("/api/recipes/favourite", (req, res) => {
     const recipeId = req.body.recipeId;
 
     prismaClient.favouriteRecipes.delete({
